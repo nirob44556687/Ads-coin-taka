@@ -418,4 +418,166 @@ $full_name = trim($first_name . " " . $last_name);
                 document.getElementById('currentBalanceWithdraw').textContent = coinBalance;
             }
             if (modalId === 'themeModal') {
-                const currentTheme = document.body.className.split(' ').find(c => c.starts
+                const currentTheme = document.body.className.split(' ').find(c => c.startsWith('theme-')) || 'default';
+                document.querySelectorAll('.theme-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                    if (opt.dataset.theme === currentTheme) {
+                        opt.classList.add('selected');
+                    }
+                });
+            }
+        }
+
+        function closeModal(modalId){ 
+            document.getElementById(modalId).style.display = "none"; 
+        }
+
+        window.onclick = (e) => { 
+            if(e.target == profileModal){ closeModal('profileModal'); } 
+            if(e.target == withdrawModal){ closeModal('withdrawModal'); }
+            if(e.target == referralModal){ closeModal('referralModal'); }
+            if(e.target == themeModal){ closeModal('themeModal'); }
+        }
+
+        function openWithdrawModal() {
+            openModal('withdrawModal');
+            document.getElementById('currentBalanceWithdraw').textContent = coinBalance;
+        }
+
+        function submitWithdrawal() {
+            const method = document.getElementById('withdrawMethod').value;
+            const accountNumber = document.getElementById('accountNumber').value.trim();
+            const withdrawAmount = parseInt(document.getElementById('withdrawAmount').value);
+            const userId = document.getElementById("userId").textContent; // Get user ID
+            const userName = document.getElementById("userName").textContent; // Get username
+            const fullName = document.getElementById("fullName").textContent; // Get full name
+
+            if (!accountNumber) {
+                showToast("Please enter your account number.");
+                return;
+            }
+            if (isNaN(withdrawAmount) || withdrawAmount < MIN_WITHDRAW_COINS) {
+                showToast(`Minimum withdraw is ${MIN_WITHDRAW_COINS} coins = ${WITHDRAW_RATE_BDT_PER_100K_COINS} BDT.`);
+                return;
+            }
+            if (withdrawAmount > coinBalance) {
+                showToast("Insufficient coin balance.");
+                return;
+            }
+
+            // Calculate BDT amount
+            const bdtAmount = (withdrawAmount / MIN_WITHDRAW_COINS) * WITHDRAW_RATE_BDT_PER_100K_COINS;
+
+            // Simulate withdrawal process (frontend only)
+            coinBalance -= withdrawAmount;
+            document.getElementById('coinBalance').textContent = coinBalance;
+            showToast(`Withdrawal request for ${withdrawAmount} coins (${bdtAmount.toFixed(2)} BDT) via ${method} to ${accountNumber} submitted!`);
+            
+            // *** অ্যাডমিনকে নোটিফিকেশন পাঠানো হচ্ছে (AdsCoinofficial3) ***
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                const message = `🚨 New Withdrawal Request! 🚨\n\nUser ID: ${userId}\nName: ${fullName}\nUsername: @${userName}\nMethod: ${method}\nAccount: ${accountNumber}\nCoins: ${withdrawAmount}\nAmount: ${bdtAmount.toFixed(2)} BDT`;
+                
+                // অ্যাডমিনের কাছে সরাসরি বার্তা পাঠানোর চেষ্টা
+                const telegramUrl = `https://t.me/${ADMIN_TELEGRAM_USERNAME}?startgroup=&text=${encodeURIComponent(message)}`;
+                tg.openLink(telegramUrl);
+                showToast("Admin will be notified! Please check Telegram.");
+            } else {
+                showToast("Please contact @"+ADMIN_TELEGRAM_USERNAME+" on Telegram with your withdrawal details.");
+                console.warn("Telegram WebApp not available for direct message.");
+            }
+
+            // Clear form fields
+            document.getElementById('accountNumber').value = '';
+            document.getElementById('withdrawAmount').value = '';
+            closeModal('withdrawModal');
+        }
+
+        // Referral System
+        function openReferralModal() {
+            openModal('referralModal');
+            const userId = document.getElementById("userId").textContent;
+            // রেফার লিংক আপডেট করা হয়েছে
+            const referralLink = `https://t.me/Referincome246_bot?start=ref_${userId}`; // আপনার বট ইউজারনেম
+            document.getElementById('referralLinkDisplay').textContent = referralLink;
+        }
+        
+        function shareReferral() {
+            const referralLink = document.getElementById('referralLinkDisplay').textContent;
+            
+            // ১. লিংক কপি করুন
+            navigator.clipboard.writeText(referralLink).then(() => {
+                showToast("Referral link copied!");
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+                showToast("Failed to copy link. Please copy manually.");
+            });
+
+            // ২. *** ডেমো: রেফার করার সাথে সাথে বোনাস যোগ ***
+            // বাস্তবে, এই ধাপটি তখনই কার্যকর হবে যখন নতুন ইউজার বটটি চালু করবে এবং আপনার ব্যাকএন্ড নিশ্চিত করবে।
+            // এখানে শুধু ডেমো দেখানোর জন্য যোগ করা হলো।
+            if(coinBalance < REFERRAL_BONUS_COINS) {
+                 showToast("Sharing... (Demo: Bonus not added as balance is low or logic needs backend)");
+            } else {
+                 addCoins(REFERRAL_BONUS_COINS, 'referral_bonus');
+                 showToast(`Referral Bonus (${REFERRAL_BONUS_COINS} Coins) added to your account!`);
+            }
+
+            // ৩. ইউজারকে শেয়ার করার সুযোগ দিন (যেমন WhatsApp/Telegram এ)
+            // টেলিগ্রাম শেয়ারিং এর জন্য সাধারণত tg.shareWebAppLink ব্যবহার করা হয়, কিন্তু সাধারণ শেয়ারিং এর জন্য নিচে দেওয়া হলো।
+            const shareText = encodeURIComponent(`Join this app using my link: ${referralLink}`);
+            window.open(`https://t.me/share/url?url=${referralLink}&text=${shareText}`, '_blank');
+        }
+
+        // Theme Selection Logic
+        function applyTheme(themeClass) {
+            document.body.className = document.body.className.split(' ').filter(c => !c.startsWith('theme-')).join(' ');
+            if (themeClass !== 'default') {
+                document.body.classList.add(themeClass);
+            }
+            localStorage.setItem('appTheme', themeClass);
+        }
+
+        function setupThemeListeners() {
+            document.querySelectorAll('.theme-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    const theme = this.dataset.theme;
+                    applyTheme(theme);
+                    closeModal('themeModal');
+                    showToast(`${theme.charAt(0).toUpperCase() + theme.slice(1)} theme applied!`);
+                });
+            });
+        }
+
+        window.onload = function(){
+            const savedTheme = localStorage.getItem('appTheme') || 'default';
+            applyTheme(savedTheme);
+
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                tg.ready(); 
+                const user = tg.initDataUnsafe?.user || {};
+                if(user.id){
+                    document.getElementById("fullName").textContent = (user.first_name || "") + " " + (user.last_name || "");
+                    document.getElementById("userName").textContent = user.username || "unknown";
+                    document.getElementById("userId").textContent = user.id || "N/A";
+                    document.getElementById("tgLink").href = user.username ? `https://t.me/${user.username}` : "#";
+                    if(user.photo_url){
+                        document.getElementById("profilePhoto").src = user.photo_url;
+                    }
+                }
+            } else {
+                console.warn("Telegram WebApp object not found. Running outside Telegram.");
+                document.getElementById("fullName").textContent = "Test User";
+                document.getElementById("userName").textContent = "testuser";
+                document.getElementById("userId").textContent = "12345";
+                document.getElementById("tgLink").href = "https://t.me/testuser";
+            }
+            
+            setupThemeListeners();
+        }
+    </script>
+    <!-- Obfuscated script from revenuecpmgatem.com (retained as per original code) -->
+    <script> document.write(atob("PHNjcmlwdCB0eXBlPSd0ZXh0L2phdmFzY3JpcHQnIHNyYz0nLy9wbDI3NTEzMzk2LnJldmVudWVjcG1nYXRlLmNvbS9mYi9lYi81ZS9mYmViNWVkM2ViMmEyMTE3YTU5OWIzODUwNDMwZTBiMC5qcyc+PC9zY3JpcHQ+"));</script>
+</body>
+</html>
