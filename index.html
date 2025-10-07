@@ -20,6 +20,7 @@ $full_name = trim($first_name . " " . $last_name);
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        /* ডিফল্ট থিম (Dark) */
         :root {
             --bg-gradient: linear-gradient(145deg, #6a11cb, #2575fc, #ff6f91);
             --glass-bg: rgba(255, 255, 255, 0.08);
@@ -28,8 +29,25 @@ $full_name = trim($first_name . " " . $last_name);
             --text-light: #f9f9f9;
             --text-muted: #cfcfcf;
         }
+        /* থিম কালার পরিবর্তন করার জন্য ক্লাস */
+        .theme-blue {
+            --bg-gradient: linear-gradient(145deg, #007bff, #0056b3, #66a3ff);
+            --primary-accent: #2575fc;
+            --secondary-accent: #45ffbc;
+        }
+        .theme-green {
+            --bg-gradient: linear-gradient(145deg, #2ed573, #1abc9c, #148f77);
+            --primary-accent: #1abc9c;
+            --secondary-accent: #45ffbc;
+        }
+        .theme-red {
+            --bg-gradient: linear-gradient(145deg, #e74c3c, #c0392b, #ff6f91);
+            --primary-accent: #e74c3c;
+            --secondary-accent: #ff9999;
+        }
+        
         *{margin:0;padding:0;box-sizing:border-box;}
-        body{font-family:'Poppins',sans-serif;background:var(--bg-gradient);min-height:100vh;color:var(--text-light);overflow-x:hidden;}
+        body{font-family:'Poppins',sans-serif;background:var(--bg-gradient);min-height:100vh;color:var(--text-light);overflow-x:hidden;transition:background 0.5s ease;}
         .app-container{max-width:400px;margin:auto;padding-bottom:160px;min-height:100vh;position:relative;}
         .header{padding:20px;display:flex;justify-content:space-between;align-items:center;}
         .coins-display{display:flex;align-items:center;gap:12px;font-size:1.5rem;font-weight:600;}
@@ -158,13 +176,40 @@ $full_name = trim($first_name . " " . $last_name);
         #copyReferralLinkBtn:hover {
             background: #20c997;
         }
+
+        /* Theme Modal Specific Styles */
+        .theme-selector-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .theme-option {
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .theme-option.selected {
+            border-color: var(--secondary-accent);
+        }
+        .theme-name {
+            margin-top: 5px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
     <div class="app-container">
         <div class="header">
             <div class="coins-display"><i class="fas fa-coins coin-icon"></i> <span id="coinBalance">0</span></div>
-            <div><i class="fas fa-user-circle" id="profileBtn" style="font-size:28px; cursor:pointer;"></i></div>
+            <div>
+                <i class="fas fa-cog" id="themeBtn" style="font-size:24px; cursor:pointer; margin-right: 15px;"></i> <!-- Theme Button -->
+                <i class="fas fa-user-circle" id="profileBtn" style="font-size:28px; cursor:pointer;"></i>
+            </div>
         </div>
 
         <div class="notice-bar"><div class="notice-text">🔥 Welcome Gigapub Rewards! Earn coins by completing tasks and spinning the wheel! 🔥</div></div>
@@ -196,21 +241,21 @@ $full_name = trim($first_name . " " . $last_name);
             </button>
         </div>
 
-<!-- Refer & Earn Button -->
-<div class="extra-buttons">
-    <button class="extra-btn refer-btn" onclick="openReferralModal()">
-        <i class="fas fa-share-alt"></i> Refer & Earn
-    </button>
-</div>
+        <!-- Refer & Earn Button -->
+        <div class="extra-buttons">
+            <button class="extra-btn refer-btn" onclick="openReferralModal()">
+                <i class="fas fa-share-alt"></i> Refer & Earn
+            </button>
+        </div>
 
-<!-- Developer Contact -->
-<div class="extra-buttons">
-    <a href="https://t.me/TapCoin_Money_Payment" target="_blank" style="text-decoration: none;">
-        <button class="extra-btn" style="background:#0088cc; font-size:18px; padding:16px 24px; display:flex; align-items:center; justify-content:center; gap:10px;">
-            <i class="fab fa-telegram-plane" style="font-size:22px;"></i> Telegram channel
-        </button>
-    </a>
-</div>
+        <!-- Developer Contact -->
+        <div class="extra-buttons">
+            <a href="https://t.me/Ads_Coin_official" target="_blank" style="text-decoration: none;">
+                <button class="extra-btn" style="background:#0088cc; font-size:18px; padding:16px 24px; display:flex; align-items:center; justify-content:center; gap:10px;">
+                    <i class="fab fa-telegram-plane" style="font-size:22px;"></i> Telegram channel
+                </button>
+            </a>
+        </div>
 
         <div class="extra-buttons">
             <button class="extra-btn auto-btn" onclick="startAutoAds()">▶ Auto Load Ad</button>
@@ -266,8 +311,21 @@ $full_name = trim($first_name . " " . $last_name);
             <h2>🤝 Refer & Earn</h2>
             <p>Share your unique referral link to invite friends and earn rewards!</p>
             <div id="referralLinkDisplay"></div>
-            <button class="close-btn" id="copyReferralLinkBtn" onclick="copyReferralLink()">Copy Link</button>
+            <button class="close-btn" id="copyReferralLinkBtn" onclick="shareReferral()">Copy Link & Share</button>
             <button class="close-btn" onclick="closeModal('referralModal')">Close</button>
+        </div>
+    </div>
+
+    <div class="modal" id="themeModal">
+        <div class="modal-content">
+            <h2>🎨 Choose Theme Color</h2>
+            <div class="theme-selector-grid">
+                <div class="theme-option" data-theme="default" style="background: linear-gradient(145deg, #6a11cb, #2575fc, #ff6f91);"><span class="theme-name">Default</span></div>
+                <div class="theme-option" data-theme="theme-blue" style="background: linear-gradient(145deg, #007bff, #0056b3, #66a3ff);"><span class="theme-name">Blue</span></div>
+                <div class="theme-option" data-theme="theme-green" style="background: linear-gradient(145deg, #2ed573, #1abc9c, #148f77);"><span class="theme-name">Green</span></div>
+                <div class="theme-option" data-theme="theme-red" style="background: linear-gradient(145deg, #e74c3c, #c0392b, #ff6f91);"><span class="theme-name">Red</span></div>
+            </div>
+            <button class="close-btn" onclick="closeModal('themeModal')">Close</button>
         </div>
     </div>
     
@@ -280,8 +338,11 @@ $full_name = trim($first_name . " " . $last_name);
         let autoAdInterval = null;
         const MIN_WITHDRAW_COINS = 100000;
         const WITHDRAW_RATE_BDT_PER_100K_COINS = 50;
-        const ADMIN_TELEGRAM_USERNAME = "AdsCoinofficial3"; // Admin username for withdrawal notifications
+        const ADMIN_TELEGRAM_USERNAME = "AdsCoinofficial3"; // অ্যাডমিন ইউজারনেম
         const COINS_PER_AD = 30; // Coins earned per ad view
+        
+        // *** রেফার বোনাস সেট করা হলো (ধরা হলো ১০ টাকা = ২০০০০ কয়েন, কারণ ৫০ টাকা = ১০০০০০ কয়েন) ***
+        const REFERRAL_BONUS_COINS = 20000; 
 
         function addCoins(amount, source='') {
             coinBalance += amount;
@@ -343,133 +404,18 @@ $full_name = trim($first_name . " " . $last_name);
 
         const profileModal = document.getElementById("profileModal");
         const withdrawModal = document.getElementById("withdrawModal");
-        const referralModal = document.getElementById("referralModal"); // Reference to referral modal
+        const referralModal = document.getElementById("referralModal");
+        const themeModal = document.getElementById("themeModal");
 
         document.getElementById("profileBtn").onclick = () => openModal('profileModal');
         document.getElementById("profileNav").onclick = () => openModal('profileModal');
         document.getElementById("withdrawNav").onclick = () => openWithdrawModal();
+        document.getElementById("themeBtn").onclick = () => openModal('themeModal');
 
         function openModal(modalId){
             document.getElementById(modalId).style.display = "flex";
             if (modalId === 'withdrawModal') {
                 document.getElementById('currentBalanceWithdraw').textContent = coinBalance;
             }
-        }
-
-        function closeModal(modalId){ 
-            document.getElementById(modalId).style.display = "none"; 
-        }
-
-        window.onclick = (e) => { 
-            if(e.target == profileModal){ closeModal('profileModal'); } 
-            if(e.target == withdrawModal){ closeModal('withdrawModal'); }
-            if(e.target == referralModal){ closeModal('referralModal'); } // Close referral modal
-        }
-
-        function openWithdrawModal() {
-            openModal('withdrawModal');
-            document.getElementById('currentBalanceWithdraw').textContent = coinBalance;
-        }
-
-        function submitWithdrawal() {
-            const method = document.getElementById('withdrawMethod').value;
-            const accountNumber = document.getElementById('accountNumber').value.trim();
-            const withdrawAmount = parseInt(document.getElementById('withdrawAmount').value);
-            const userId = document.getElementById("userId").textContent; // Get user ID
-            const userName = document.getElementById("userName").textContent; // Get username
-            const fullName = document.getElementById("fullName").textContent; // Get full name
-
-            if (!accountNumber) {
-                showToast("Please enter your account number.");
-                return;
-            }
-            if (isNaN(withdrawAmount) || withdrawAmount < MIN_WITHDRAW_COINS) {
-                showToast(`Minimum withdraw is ${MIN_WITHDRAW_COINS} coins = ${WITHDRAW_RATE_BDT_PER_100K_COINS} BDT.`);
-                return;
-            }
-            if (withdrawAmount > coinBalance) {
-                showToast("Insufficient coin balance.");
-                return;
-            }
-
-            // Calculate BDT amount
-            const bdtAmount = (withdrawAmount / MIN_WITHDRAW_COINS) * WITHDRAW_RATE_BDT_PER_100K_COINS;
-
-            // Simulate withdrawal process (frontend only)
-            coinBalance -= withdrawAmount;
-            document.getElementById('coinBalance').textContent = coinBalance;
-            showToast(`Withdrawal request for ${withdrawAmount} coins (${bdtAmount} BDT) via ${method} to ${accountNumber} submitted!`);
-            
-            // Send message to admin via Telegram WebApp (if available) or direct link
-            if (window.Telegram && window.Telegram.WebApp) {
-                const tg = window.Telegram.WebApp;
-                const message = `🚨 New Withdrawal Request! 🚨\n\nUser ID: ${userId}\nName: ${fullName}\nUsername: @${userName}\nMethod: ${method}\nAccount: ${accountNumber}\nCoins: ${withdrawAmount}\nAmount: ${bdtAmount} BDT`;
-                
-                // Telegram WebApp allows sending messages directly to a chat if the bot is in it.
-                // However, directly sending to an *admin's username* from the webapp context
-                // usually requires the bot to know the admin's chat ID.
-                // A more robust solution would be to send this to your *server*, and your server
-                // then forwards it to the admin's Telegram via Bot API.
-                // For demonstration, we'll try to open a direct chat for the admin to paste.
-                const telegramUrl = `https://t.me/${ADMIN_TELEGRAM_USERNAME}?startgroup=&text=${encodeURIComponent(message)}`;
-                tg.openLink(telegramUrl);
-                showToast("Admin will be notified! Please check Telegram.");
-            } else {
-                // Fallback: advise user to manually contact or show message.
-                showToast("Please contact @"+ADMIN_TELEGRAM_USERNAME+" on Telegram with your withdrawal details.");
-                console.warn("Telegram WebApp not available for direct message. Please integrate with a backend to send admin notifications.");
-            }
-
-            // Clear form fields
-            document.getElementById('accountNumber').value = '';
-            document.getElementById('withdrawAmount').value = '';
-            closeModal('withdrawModal');
-        }
-
-        // Referral System
-        function openReferralModal() {
-            openModal('referralModal');
-            const userId = document.getElementById("userId").textContent;
-            const referralLink = `https://t.me/your_bot_username?start=ref_${userId}`; // Customize 'your_bot_username'
-            document.getElementById('referralLinkDisplay').textContent = referralLink;
-        }
-
-        function copyReferralLink() {
-            const referralLink = document.getElementById('referralLinkDisplay').textContent;
-            navigator.clipboard.writeText(referralLink).then(() => {
-                showToast("Referral link copied!");
-            }).catch(err => {
-                console.error('Failed to copy text: ', err);
-                showToast("Failed to copy link. Please copy manually.");
-            });
-        }
-
-
-        window.onload = function(){
-            // Check if Telegram WebApp is available
-            if (window.Telegram && window.Telegram.WebApp) {
-                const tg = window.Telegram.WebApp;
-                const user = tg.initDataUnsafe?.user || {};
-                if(user.id){
-                    document.getElementById("fullName").textContent = (user.first_name || "") + " " + (user.last_name || "");
-                    document.getElementById("userName").textContent = user.username || "unknown";
-                    document.getElementById("userId").textContent = user.id || "N/A";
-                    document.getElementById("tgLink").href = user.username ? `https://t.me/${user.username}` : "#";
-                    if(user.photo_url){
-                        document.getElementById("profilePhoto").src = user.photo_url;
-                    }
-                }
-            } else {
-                console.warn("Telegram WebApp object not found. Running outside Telegram.");
-                // Fallback for testing outside Telegram if needed
-                document.getElementById("fullName").textContent = "Test User";
-                document.getElementById("userName").textContent = "testuser";
-                document.getElementById("userId").textContent = "12345";
-                document.getElementById("tgLink").href = "https://t.me/testuser";
-            }
-        }
-    </script>
-    <!-- Obfuscated script from revenuecpmgatem.com (retained as per original code) -->
-    <script> document.write(atob("PHNjcmlwdCB0eXBlPSd0ZXh0L2phdmFzY3JpcHQnIHNyYz0nLy9wbDI3NTEzMzk2LnJldmVudWVjcG1nYXRlLmNvbS9mYi9lYi81ZS9mYmViNWVkM2ViMmEyMTE3YTU5OWIzODUwNDMwZTBiMC5qcyc+PC9zY3JpcHQ+"));</script>
-</body>
-</html>
+            if (modalId === 'themeModal') {
+                const currentTheme = document.body.className.split(' ').find(c => c.starts
