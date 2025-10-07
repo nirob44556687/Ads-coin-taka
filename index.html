@@ -347,6 +347,8 @@ $full_name = trim($first_name . " " . $last_name);
         function addCoins(amount, source='') {
             coinBalance += amount;
             document.getElementById('coinBalance').textContent = coinBalance;
+            // **NEW:** Save to localStorage
+            localStorage.setItem('userCoinBalance', coinBalance); 
             showToast(`+${amount} coins from ${source}`);
         }
 
@@ -487,9 +489,10 @@ $full_name = trim($first_name . " " . $last_name);
                 console.warn("Telegram WebApp not available for direct message.");
             }
 
-            // Clear form fields
+            // Clear form fields and remove balance from localStorage upon successful submission (assuming server would handle final deduction)
             document.getElementById('accountNumber').value = '';
             document.getElementById('withdrawAmount').value = '';
+            localStorage.removeItem('userCoinBalance'); // **NEW:** Remove from local storage
             closeModal('withdrawModal');
         }
 
@@ -497,8 +500,8 @@ $full_name = trim($first_name . " " . $last_name);
         function openReferralModal() {
             openModal('referralModal');
             const userId = document.getElementById("userId").textContent;
-            // রেফার লিংক আপডেট করা হয়েছে
-            const referralLink = `https://t.me/Referincome246_bot?start=ref_${userId}`; // আপনার বট ইউজারনেম
+            // রেফার লিংক তৈরি করা হলো
+            const referralLink = `https://t.me/Referincome246_bot?start=ref_${userId}`; // **YOUR BOT USERNAME HERE**
             document.getElementById('referralLinkDisplay').textContent = referralLink;
         }
         
@@ -515,7 +518,6 @@ $full_name = trim($first_name . " " . $last_name);
 
             // ২. *** ডেমো: রেফার করার সাথে সাথে বোনাস যোগ ***
             // বাস্তবে, এই ধাপটি তখনই কার্যকর হবে যখন নতুন ইউজার বটটি চালু করবে এবং আপনার ব্যাকএন্ড নিশ্চিত করবে।
-            // এখানে শুধু ডেমো দেখানোর জন্য যোগ করা হলো।
             if(coinBalance < REFERRAL_BONUS_COINS) {
                  showToast("Sharing... (Demo: Bonus not added as balance is low or logic needs backend)");
             } else {
@@ -553,6 +555,14 @@ $full_name = trim($first_name . " " . $last_name);
             const savedTheme = localStorage.getItem('appTheme') || 'default';
             applyTheme(savedTheme);
 
+            // **NEW:** Load balance from localStorage
+            const savedBalance = localStorage.getItem('userCoinBalance');
+            if (savedBalance) {
+                coinBalance = parseInt(savedBalance);
+                document.getElementById('coinBalance').textContent = coinBalance;
+            }
+
+
             if (window.Telegram && window.Telegram.WebApp) {
                 const tg = window.Telegram.WebApp;
                 tg.ready(); 
@@ -572,6 +582,11 @@ $full_name = trim($first_name . " " . $last_name);
                 document.getElementById("userName").textContent = "testuser";
                 document.getElementById("userId").textContent = "12345";
                 document.getElementById("tgLink").href = "https://t.me/testuser";
+                // **NEW:** Set a demo balance if running outside TWA
+                if (!localStorage.getItem('userCoinBalance')) {
+                     localStorage.setItem('userCoinBalance', 5000);
+                     document.getElementById('coinBalance').textContent = 5000;
+                }
             }
             
             setupThemeListeners();
