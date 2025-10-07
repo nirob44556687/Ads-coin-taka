@@ -1,0 +1,475 @@
+<?php
+$user = null;
+if (isset($_GET['tg'])) {
+    $user = json_decode($_GET['tg'], true);
+}
+$username = $user['username'] ?? "Guest";
+$first_name = $user['first_name'] ?? "";
+$last_name = $user['last_name'] ?? "";
+$user_id = $user['id'] ?? "N/A";
+$full_name = trim($first_name . " " . $last_name);
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Gigapub Rewards Pro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(145deg, #6a11cb, #2575fc, #ff6f91);
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --primary-accent: #ff6f91;
+            --secondary-accent: #45ffbc;
+            --text-light: #f9f9f9;
+            --text-muted: #cfcfcf;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:'Poppins',sans-serif;background:var(--bg-gradient);min-height:100vh;color:var(--text-light);overflow-x:hidden;}
+        .app-container{max-width:400px;margin:auto;padding-bottom:160px;min-height:100vh;position:relative;}
+        .header{padding:20px;display:flex;justify-content:space-between;align-items:center;}
+        .coins-display{display:flex;align-items:center;gap:12px;font-size:1.5rem;font-weight:600;}
+        .coin-icon{font-size:32px;color:gold;}
+        .section-heading{padding:10px 20px;font-size:1.2rem;font-weight:600;}
+        .activities-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:15px;padding:0 20px;}
+        .activity-card{background:var(--glass-bg);border-radius:20px;padding:15px;text-align:center;cursor:pointer;transition:all .3s ease;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:130px;border:1px solid rgba(255,255,255,0.1);backdrop-filter:blur(10px);}
+        .activity-card:hover{transform:translateY(-5px);background:rgba(69,255,188,0.15);}
+        .activity-icon{font-size:2rem;margin-bottom:10px;background:-webkit-linear-gradient(135deg,var(--primary-accent),var(--secondary-accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+        .activity-title{font-weight:600;font-size:.9rem;line-height:1.2;}
+        .notice-bar{background-color:rgba(0,0,0,0.6);color:#ffd700;padding:8px 0;overflow:hidden;white-space:nowrap;}
+        .notice-text{display:inline-block;padding-left:100%;animation:scroll-left 25s linear infinite;font-weight:500;}
+        @keyframes scroll-left{0%{transform:translateX(0);}100%{transform:translateX(-100%);}}
+        .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);background:var(--glass-bg);backdrop-filter:blur(15px);max-width:400px;width:100%;display:flex;justify-content:space-around;padding:10px 0 20px;z-index:10;border-top:1px solid rgba(255,255,255,0.1);border-top-left-radius:25px;border-top-right-radius:25px;}
+        .nav-item{text-align:center;color:var(--text-muted);font-size:12px;cursor:pointer;padding:5px 10px;}
+        .nav-item.active{color:white;}
+        .nav-icon{font-size:20px;margin-bottom:4px;}
+        .nav-item.active .nav-icon{color:var(--primary-accent);}
+        .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#2ed573;color:white;padding:14px 22px;border-radius:12px;z-index:1000;animation:toastSlide .4s forwards,toastFade .4s 2.5s forwards;font-size:15px;box-shadow:0 5px 20px rgba(0,0,0,0.3);}
+        @keyframes toastSlide{from{bottom:60px;opacity:0;}to{bottom:90px;opacity:1;}}
+        @keyframes toastFade{from{opacity:1;}to{opacity:0;}}
+        .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background-color:rgba(0,0,0,0.6);display:flex;justify-content:center;align-items:center;}
+        .modal-content{background:var(--glass-bg);backdrop-filter:blur(15px);border-radius:20px;padding:25px;width:85%;max-width:350px;text-align:center;color:var(--text-light);border:1px solid rgba(255,255,255,0.1);}
+        .modal-content h2{margin-bottom:15px;font-size:1.3rem;}
+        .modal-content p{margin:8px 0;}
+        .profile-photo{width:90px;height:90px;border-radius:50%;object-fit:cover;margin-bottom:15px;border:3px solid var(--primary-accent);}
+        .close-btn{margin-top:15px;padding:10px 18px;background:var(--primary-accent);border:none;border-radius:10px;cursor:pointer;color:white;font-weight:600;}
+        .close-btn:hover{background:#ff4970;}
+        /* Extra Buttons */
+        .extra-buttons{padding:20px;display:flex;gap:15px;justify-content:center;}
+        .extra-btn{padding:12px 20px;border:none;border-radius:12px;font-weight:600;cursor:pointer;color:white;}
+        .auto-btn{background:#1abc9c;}
+        .stop-btn{background:#e74c3c;}
+
+        /* Withdraw Modal Specific Styles */
+        .modal-content label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            text-align: left;
+            padding-left: 5px;
+        }
+        .modal-content input[type="text"],
+        .modal-content select {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.3);
+            background-color: rgba(255,255,255,0.1);
+            color: var(--text-light);
+            font-size: 1rem;
+        }
+        .modal-content input[type="text"]::placeholder {
+            color: var(--text-muted);
+        }
+        .modal-content .withdraw-btn {
+            background: #28a745; /* Green for withdraw */
+            margin-top: 10px;
+        }
+        .modal-content .withdraw-btn:hover {
+            background: #218838;
+        }
+
+        /* Single Withdraw Button Style */
+        .single-withdraw-btn-container {
+            padding: 20px;
+            text-align: center;
+        }
+        .single-withdraw-btn {
+            padding: 15px 30px;
+            background: var(--primary-accent); /* Using primary accent for consistency */
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        .single-withdraw-btn:hover {
+            background: #ff4970;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Refer & Earn Button */
+        .refer-btn {
+            background: #007bff; /* Blue color for refer button */
+            margin-top: 15px;
+            font-size: 1rem;
+            padding: 12px 25px;
+            border-radius: 10px;
+        }
+        .refer-btn:hover {
+            background: #0056b3;
+        }
+
+        /* Refer Modal Content */
+        #referralModal .modal-content {
+            padding: 30px;
+        }
+        #referralLinkDisplay {
+            background-color: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 12px;
+            margin: 20px 0;
+            word-break: break-all;
+            font-size: 0.9rem;
+            color: var(--secondary-accent);
+            text-align: center;
+            user-select: all; /* Allows easy selection */
+        }
+        #copyReferralLinkBtn {
+            background: var(--secondary-accent);
+            color: #333;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        #copyReferralLinkBtn:hover {
+            background: #20c997;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <div class="coins-display"><i class="fas fa-coins coin-icon"></i> <span id="coinBalance">0</span></div>
+            <div><i class="fas fa-user-circle" id="profileBtn" style="font-size:28px; cursor:pointer;"></i></div>
+        </div>
+
+        <div class="notice-bar"><div class="notice-text">🔥 Welcome Gigapub Rewards! Earn coins by completing tasks and spinning the wheel! 🔥</div></div>
+
+        <div class="section-heading">Tasks</div>
+        <div class="activities-grid">
+            <div class="activity-card" onclick="handleTask(30,'daily_bonus')">
+                <i class="fas fa-gift activity-icon"></i>
+                <div class="activity-title">Daily Bonus</div>
+            </div>
+            <div class="activity-card" onclick="handleTask(30,'watch_video')">
+                <i class="fas fa-play-circle activity-icon"></i>
+                <div class="activity-title">Watch Ad</div>
+            </div>
+            <div class="activity-card" onclick="startSpin()">
+                <i class="fas fa-spinner activity-icon"></i>
+                <div class="activity-title">Spin Wheel</div>
+            </div>
+            <div class="activity-card" onclick="startScratch()">
+                <i class="fas fa-sparkles activity-icon"></i>
+                <div class="activity-title">Scratch Card</div>
+            </div>
+        </div>
+        
+        <!-- Single Withdraw Button -->
+        <div class="single-withdraw-btn-container">
+            <button class="single-withdraw-btn" onclick="openWithdrawModal()">
+                <i class="fas fa-money-bill-transfer"></i> Withdraw Coins
+            </button>
+        </div>
+
+<!-- Refer & Earn Button -->
+<div class="extra-buttons">
+    <button class="extra-btn refer-btn" onclick="openReferralModal()">
+        <i class="fas fa-share-alt"></i> Refer & Earn
+    </button>
+</div>
+
+<!-- Developer Contact -->
+<div class="extra-buttons">
+    <a href="https://t.me/TapCoin_Money_Payment" target="_blank" style="text-decoration: none;">
+        <button class="extra-btn" style="background:#0088cc; font-size:18px; padding:16px 24px; display:flex; align-items:center; justify-content:center; gap:10px;">
+            <i class="fab fa-telegram-plane" style="font-size:22px;"></i> Telegram channel
+        </button>
+    </a>
+</div>
+
+        <div class="extra-buttons">
+            <button class="extra-btn auto-btn" onclick="startAutoAds()">▶ Auto Load Ad</button>
+            <button class="extra-btn stop-btn" onclick="stopAutoAds()">⏹ Stop Auto Ad</button>
+        </div>
+    </div>
+
+
+    <div class="bottom-nav">
+        <div class="nav-item active"><i class="fas fa-home nav-icon"></i>Home</div>
+        <div class="nav-item" id="profileNav"><i class="fas fa-user nav-icon"></i>Profile</div>
+        <div class="nav-item" id="withdrawNav"><i class="fas fa-dollar-sign nav-icon"></i>Withdraw</div>
+    </div>
+
+    <div class="modal" id="profileModal">
+        <div class="modal-content">
+            <img id="profilePhoto" class="profile-photo" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Profile Photo">
+            <h2>👤 Profile</h2>
+            <p><strong>Name:</strong> <span id="fullName"><?php echo $full_name ?: "Unknown"; ?></span></p>
+            <p><strong>Username:</strong> @<span id="userName"><?php echo $username; ?></span></p>
+            <p><strong>User ID:</strong> <span id="userId"><?php echo $user_id; ?></span></p>
+            <a id="tgLink" href="https://t.me/<?php echo $username; ?>" target="_blank" class="close-btn">Open in Telegram</a>
+            <br>
+            <button class="close-btn" onclick="closeModal('profileModal')">Close</button>
+        </div>
+    </div>
+
+    <div class="modal" id="withdrawModal">
+        <div class="modal-content">
+            <h2>💸 Withdraw Coins</h2>
+            <p>Minimum Withdraw: 100,000 Coins = 50 BDT</p>
+            <p>Your current balance: <span id="currentBalanceWithdraw">0</span> Coins</p>
+            
+            <label for="withdrawMethod">Withdraw Method:</label>
+            <select id="withdrawMethod">
+                <option value="bKash">bKash</option>
+                <option value="Nagad">Nagad</option>
+            </select>
+
+            <label for="accountNumber">Your Account Number:</label>
+            <input type="text" id="accountNumber" placeholder="Enter your bKash/Nagad number">
+
+            <label for="withdrawAmount">Coins to Withdraw:</label>
+            <input type="text" id="withdrawAmount" placeholder="Enter amount in coins (e.g., 100000)">
+
+            <button class="close-btn withdraw-btn" onclick="submitWithdrawal()">Submit Withdrawal</button>
+            <button class="close-btn" onclick="closeModal('withdrawModal')">Close</button>
+        </div>
+    </div>
+
+    <div class="modal" id="referralModal">
+        <div class="modal-content">
+            <h2>🤝 Refer & Earn</h2>
+            <p>Share your unique referral link to invite friends and earn rewards!</p>
+            <div id="referralLinkDisplay"></div>
+            <button class="close-btn" id="copyReferralLinkBtn" onclick="copyReferralLink()">Copy Link</button>
+            <button class="close-btn" onclick="closeModal('referralModal')">Close</button>
+        </div>
+    </div>
+    
+    <!-- GigaPub Ad Unit ID 2398 -->
+    <script src="https://ad.gigapub.tech/script?id=2398"></script>
+    <!-- GigaPub Ad Unit ID 1013 (added as per user's request) -->
+    <script src="https://ad.gigapub.tech/script?id=1013"></script>
+    <script>
+        let coinBalance = 0;
+        let autoAdInterval = null;
+        const MIN_WITHDRAW_COINS = 100000;
+        const WITHDRAW_RATE_BDT_PER_100K_COINS = 50;
+        const ADMIN_TELEGRAM_USERNAME = "AdsCoinofficial3"; // Admin username for withdrawal notifications
+        const COINS_PER_AD = 30; // Coins earned per ad view
+
+        function addCoins(amount, source='') {
+            coinBalance += amount;
+            document.getElementById('coinBalance').textContent = coinBalance;
+            showToast(`+${amount} coins from ${source}`);
+        }
+
+        function showToast(msg){
+            let t=document.createElement('div');
+            t.className='toast';
+            t.textContent=msg;
+            document.body.appendChild(t);
+            setTimeout(()=>t.remove(),3000);
+        }
+
+        async function showGigapubAd() {
+            try { 
+                if (window.showGiga) { 
+                    await window.showGiga(); 
+                    return true; 
+                } else {
+                    console.error("window.showGiga is not defined. Gigapub ad script might not have loaded correctly or its API changed.");
+                    return false;
+                }
+            }
+            catch(e){ 
+                console.log('Error showing ad:', e); 
+                return false; 
+            }
+        }
+
+        async function handleTask(rewardOverride = COINS_PER_AD, source) {
+            showToast("Loading ad...");
+            const adShown = await showGigapubAd();
+            if(adShown){ addCoins(rewardOverride, source); }
+            else { showToast("Ad failed. Try again."); }
+        }
+
+        function startSpin(){ showToast("Spin Wheel - Ad will show first."); handleTask(100,'spin_reward'); } // Spin reward can be different
+        function startScratch(){ showToast("Scratch Card - Ad will show first."); handleTask(75,'scratch_reward'); } // Scratch reward can be different
+
+        function startAutoAds(){
+            if(autoAdInterval){ showToast("Auto Ads already running."); return; }
+            showToast("Auto Ads started.");
+            autoAdInterval = setInterval(async ()=>{
+                const adShown = await showGigapubAd();
+                if (adShown) {
+                    addCoins(COINS_PER_AD, 'auto_ad_reward'); 
+                }
+            },10000); 
+        }
+        function stopAutoAds(){
+            if(autoAdInterval){ 
+                clearInterval(autoAdInterval); 
+                autoAdInterval=null; 
+                showToast("Auto Ads stopped.");
+            }
+        }
+
+        const profileModal = document.getElementById("profileModal");
+        const withdrawModal = document.getElementById("withdrawModal");
+        const referralModal = document.getElementById("referralModal"); // Reference to referral modal
+
+        document.getElementById("profileBtn").onclick = () => openModal('profileModal');
+        document.getElementById("profileNav").onclick = () => openModal('profileModal');
+        document.getElementById("withdrawNav").onclick = () => openWithdrawModal();
+
+        function openModal(modalId){
+            document.getElementById(modalId).style.display = "flex";
+            if (modalId === 'withdrawModal') {
+                document.getElementById('currentBalanceWithdraw').textContent = coinBalance;
+            }
+        }
+
+        function closeModal(modalId){ 
+            document.getElementById(modalId).style.display = "none"; 
+        }
+
+        window.onclick = (e) => { 
+            if(e.target == profileModal){ closeModal('profileModal'); } 
+            if(e.target == withdrawModal){ closeModal('withdrawModal'); }
+            if(e.target == referralModal){ closeModal('referralModal'); } // Close referral modal
+        }
+
+        function openWithdrawModal() {
+            openModal('withdrawModal');
+            document.getElementById('currentBalanceWithdraw').textContent = coinBalance;
+        }
+
+        function submitWithdrawal() {
+            const method = document.getElementById('withdrawMethod').value;
+            const accountNumber = document.getElementById('accountNumber').value.trim();
+            const withdrawAmount = parseInt(document.getElementById('withdrawAmount').value);
+            const userId = document.getElementById("userId").textContent; // Get user ID
+            const userName = document.getElementById("userName").textContent; // Get username
+            const fullName = document.getElementById("fullName").textContent; // Get full name
+
+            if (!accountNumber) {
+                showToast("Please enter your account number.");
+                return;
+            }
+            if (isNaN(withdrawAmount) || withdrawAmount < MIN_WITHDRAW_COINS) {
+                showToast(`Minimum withdraw is ${MIN_WITHDRAW_COINS} coins = ${WITHDRAW_RATE_BDT_PER_100K_COINS} BDT.`);
+                return;
+            }
+            if (withdrawAmount > coinBalance) {
+                showToast("Insufficient coin balance.");
+                return;
+            }
+
+            // Calculate BDT amount
+            const bdtAmount = (withdrawAmount / MIN_WITHDRAW_COINS) * WITHDRAW_RATE_BDT_PER_100K_COINS;
+
+            // Simulate withdrawal process (frontend only)
+            coinBalance -= withdrawAmount;
+            document.getElementById('coinBalance').textContent = coinBalance;
+            showToast(`Withdrawal request for ${withdrawAmount} coins (${bdtAmount} BDT) via ${method} to ${accountNumber} submitted!`);
+            
+            // Send message to admin via Telegram WebApp (if available) or direct link
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                const message = `🚨 New Withdrawal Request! 🚨\n\nUser ID: ${userId}\nName: ${fullName}\nUsername: @${userName}\nMethod: ${method}\nAccount: ${accountNumber}\nCoins: ${withdrawAmount}\nAmount: ${bdtAmount} BDT`;
+                
+                // Telegram WebApp allows sending messages directly to a chat if the bot is in it.
+                // However, directly sending to an *admin's username* from the webapp context
+                // usually requires the bot to know the admin's chat ID.
+                // A more robust solution would be to send this to your *server*, and your server
+                // then forwards it to the admin's Telegram via Bot API.
+                // For demonstration, we'll try to open a direct chat for the admin to paste.
+                const telegramUrl = `https://t.me/${ADMIN_TELEGRAM_USERNAME}?startgroup=&text=${encodeURIComponent(message)}`;
+                tg.openLink(telegramUrl);
+                showToast("Admin will be notified! Please check Telegram.");
+            } else {
+                // Fallback: advise user to manually contact or show message.
+                showToast("Please contact @"+ADMIN_TELEGRAM_USERNAME+" on Telegram with your withdrawal details.");
+                console.warn("Telegram WebApp not available for direct message. Please integrate with a backend to send admin notifications.");
+            }
+
+            // Clear form fields
+            document.getElementById('accountNumber').value = '';
+            document.getElementById('withdrawAmount').value = '';
+            closeModal('withdrawModal');
+        }
+
+        // Referral System
+        function openReferralModal() {
+            openModal('referralModal');
+            const userId = document.getElementById("userId").textContent;
+            const referralLink = `https://t.me/your_bot_username?start=ref_${userId}`; // Customize 'your_bot_username'
+            document.getElementById('referralLinkDisplay').textContent = referralLink;
+        }
+
+        function copyReferralLink() {
+            const referralLink = document.getElementById('referralLinkDisplay').textContent;
+            navigator.clipboard.writeText(referralLink).then(() => {
+                showToast("Referral link copied!");
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+                showToast("Failed to copy link. Please copy manually.");
+            });
+        }
+
+
+        window.onload = function(){
+            // Check if Telegram WebApp is available
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                const user = tg.initDataUnsafe?.user || {};
+                if(user.id){
+                    document.getElementById("fullName").textContent = (user.first_name || "") + " " + (user.last_name || "");
+                    document.getElementById("userName").textContent = user.username || "unknown";
+                    document.getElementById("userId").textContent = user.id || "N/A";
+                    document.getElementById("tgLink").href = user.username ? `https://t.me/${user.username}` : "#";
+                    if(user.photo_url){
+                        document.getElementById("profilePhoto").src = user.photo_url;
+                    }
+                }
+            } else {
+                console.warn("Telegram WebApp object not found. Running outside Telegram.");
+                // Fallback for testing outside Telegram if needed
+                document.getElementById("fullName").textContent = "Test User";
+                document.getElementById("userName").textContent = "testuser";
+                document.getElementById("userId").textContent = "12345";
+                document.getElementById("tgLink").href = "https://t.me/testuser";
+            }
+        }
+    </script>
+    <!-- Obfuscated script from revenuecpmgatem.com (retained as per original code) -->
+    <script> document.write(atob("PHNjcmlwdCB0eXBlPSd0ZXh0L2phdmFzY3JpcHQnIHNyYz0nLy9wbDI3NTEzMzk2LnJldmVudWVjcG1nYXRlLmNvbS9mYi9lYi81ZS9mYmViNWVkM2ViMmEyMTE3YTU5OWIzODUwNDMwZTBiMC5qcyc+PC9zY3JpcHQ+"));</script>
+</body>
+</html>
